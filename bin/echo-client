@@ -6,8 +6,11 @@ use Socket;
 use IO::Async::Socket;
 use IO::Async::Loop;
 use IO::Async::Connector;
+use IO::Async::Timer::Periodic;
 
 my $loop = IO::Async::Loop->new;
+
+my $i = 0;
 
 $loop->connect(
    host => 'localhost',
@@ -16,6 +19,18 @@ $loop->connect(
    on_socket => sub {
       my $sock = shift;
       say "->connect done ($sock)";
+      my $timer = IO::Async::Timer::Periodic->new(
+         interval => 3,
+
+         on_tick => sub {
+            print " -- heartbeat\n";
+            $sock->send($i++ . " heartbeat");
+         },
+      );
+
+      $timer->start;
+      $loop->add($timer);
+
       $sock->configure(
          on_recv => sub {
             my ( $self, $dgram, $addr ) = @_;

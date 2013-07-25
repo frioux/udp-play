@@ -21,8 +21,14 @@ my $sock = IO::Async::Socket->new(
    on_recv => sub {
       my ( $self, $dgram, $addr ) = @_;
 
-      say "Received reply: $dgram";
-      $self->send($dgram, $addr);
+
+      if ($dgram =~ m/^(\d+) heartbeat/) {
+         say "saw heartbeat $1";
+      } else {
+         say "Received reply: $dgram";
+
+         $self->send($dgram, $addr);
+      }
    },
    on_recv_error => sub {
       my ( $self, $errno ) = @_;
