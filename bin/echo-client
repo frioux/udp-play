@@ -25,10 +25,10 @@ $loop->connect(
       my $sock = shift;
       say "->connect done ($sock)";
       my $timer = IO::Async::Timer::Periodic->new(
-         interval => 3,
+         interval => 0.01,
 
          on_tick => sub {
-            log_debug { 'heartbeat' };
+            # log_debug { 'heartbeat' };
             $sock->send($i++ . "\0heartbeat");
          },
       );
@@ -44,7 +44,7 @@ $loop->connect(
          },
          on_recv_error => sub {
             my ( $self, $errno ) = @_;
-            warn "Cannot recv - $errno\n";
+            # warn "Cannot recv - $errno\n";
          },
       );
       $loop->add($sock);
