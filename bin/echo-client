@@ -1,12 +1,17 @@
-use strict;
-use warnings;
 use 5.16.1;
+use warnings;
 
 use Socket;
 use IO::Async::Socket;
 use IO::Async::Loop;
 use IO::Async::Connector;
 use IO::Async::Timer::Periodic;
+
+use Log::Contextual qw( :log :dlog set_logger with_logger );
+use Log::Log4perl ':easy';
+Log::Log4perl->easy_init($DEBUG);
+my $logger  = Log::Log4perl->get_logger;
+set_logger $logger;
 
 my $loop = IO::Async::Loop->new;
 
@@ -23,7 +28,7 @@ $loop->connect(
          interval => 3,
 
          on_tick => sub {
-            print " -- heartbeat\n";
+            log_debug { 'heartbeat' };
             $sock->send($i++ . " heartbeat");
          },
       );
