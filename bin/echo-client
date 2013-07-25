@@ -1,0 +1,36 @@
+use strict;
+use warnings;
+use 5.16.1;
+
+use Socket;
+use IO::Async::Socket;
+use IO::Async::Loop;
+use IO::Async::Connector;
+
+my $loop = IO::Async::Loop->new;
+
+$loop->connect(
+   host => 'localhost',
+   service => 8001,
+   socktype => 'dgram',
+   on_socket => sub {
+      my $sock = shift;
+      say "->connect done ($sock)";
+      $sock->configure(
+         on_recv => sub {
+            my ( $self, $dgram, $addr ) = @_;
+
+            say "Client sees reply: $dgram";
+         },
+         on_recv_error => sub {
+            my ( $self, $errno ) = @_;
+            die "Cannot recv - $errno\n";
+         },
+      );
+      $loop->add($sock);
+      $sock->send("test message");
+   },
+   on_connect_error => sub { die "@_" },
+   on_resolve_error => sub { die "@_" },
+);
+$loop->run;
