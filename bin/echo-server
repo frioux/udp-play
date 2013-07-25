@@ -9,14 +9,6 @@ use IO::Async::Loop;
 use IO::Async::Connector;
 use IO::Async::Timer::Periodic;
 
-use Log::Contextual qw( :log :dlog set_logger with_logger );
-use Log::Log4perl ':easy';
-Log::Log4perl->easy_init($DEBUG);
-my $logger  = Log::Log4perl->get_logger;
-set_logger $logger;
-
-use Devel::Dwarn;
-
 my $loop = IO::Async::Loop->new;
 
 my $s = IO::Socket::INET->new(
@@ -26,11 +18,10 @@ my $s = IO::Socket::INET->new(
    LocalPort => 8001,
 ) or die "No bind: $@\n";
 
-my %seen;
 my $timer = IO::Async::Timer::Periodic->new(
-   interval => 15,
+   interval => 60,
 
-   on_tick => sub { Dwarn \%seen },
+   on_tick => \&mq,
 );
 
 $timer->start;
@@ -38,26 +29,16 @@ $loop->add($timer);
 
 my $sock = IO::Async::Socket->new(
    handle => $s,
-   on_recv => sub {
-      my ( $self, $dgram, $addr ) = @_;
-
-      my $client = $s->peerhost . ':' . $s->peerport;
-      my ($id, $message) = split /\0/, $dgram, 3;
-
-      $seen{$client} = max($seen{$client} || 0, $id);
-      log_trace { "id: $id" };
-      if ($message eq 'heartbeat') {
-         log_debug { "saw heartbeat $id" };
-      } else {
-         say "Received reply: $message";
-
-         $self->send($dgram, $addr);
-      }
-   },
-   on_recv_error => sub {
-      my ( $self, $errno ) = @_;
-      die "Cannot recv - $errno\n";
-   },
+   on_recv => \&mq,
+   on_recv_error => sub { die "Cannot recv - $_[1]\n" },
 );
 $loop->add($sock);
 $loop->run;
+
+my $in_mq;
+sub mq {
+   return if $in_mq;
+   $in_mq = 1;
+
+   $in_mq = 0;
+}
