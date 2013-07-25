@@ -29,7 +29,7 @@ $loop->connect(
 
          on_tick => sub {
             log_debug { 'heartbeat' };
-            $sock->send($i++ . " heartbeat");
+            $sock->send($i++ . "\0heartbeat");
          },
       );
 
@@ -44,11 +44,12 @@ $loop->connect(
          },
          on_recv_error => sub {
             my ( $self, $errno ) = @_;
-            die "Cannot recv - $errno\n";
+            warn "Cannot recv - $errno\n";
          },
       );
       $loop->add($sock);
-      $sock->send("test message");
+
+      $sock->send($i++ . "\0test message");
    },
    on_connect_error => sub { die "@_" },
    on_resolve_error => sub { die "@_" },
