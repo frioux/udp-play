@@ -1,3 +1,5 @@
+#!/usr/bin/env perl
+
 use 5.16.1;
 use warnings;
 
@@ -8,6 +10,8 @@ use IO::Async::Socket;
 use IO::Async::Loop;
 use IO::Async::Connector;
 use IO::Async::Timer::Periodic;
+use Net::Async::HTTP::Server;
+use HTTP::Response;
 
 my $loop = IO::Async::Loop->new;
 
@@ -26,6 +30,26 @@ my $timer = IO::Async::Timer::Periodic->new(
 
 $timer->start;
 $loop->add($timer);
+
+my $httpserver = Net::Async::HTTP::Server->new(
+   on_request => sub {
+      my $self = shift;
+      my ( $req ) = @_;
+
+      my $response = HTTP::Response->new( 200 );
+      $response->add_content( "Status info goes here\n" );
+      $response->content_type( 'text/plain' );
+      $response->content_length( length $response->content );
+
+      $req->respond( $response );
+   },
+);
+
+$loop->add($httpserver);
+$httpserver->listen(
+   addr => { family => 'inet6', socktype => 'stream', port => 8080 },
+   on_listen_error => sub { die "Cannot listen - $_[-1]\n" },
+);
 
 my $sock = IO::Async::Socket->new(
    handle => $s,
