@@ -5,6 +5,8 @@ use warnings;
 
 use List::Util 'max';
 
+our @err;
+our @out;
 use Socket;
 use IO::Async::Socket;
 use IO::Async::Loop;
@@ -12,6 +14,9 @@ use IO::Async::Connector;
 use IO::Async::Timer::Periodic;
 use Net::Async::HTTP::Server;
 use HTTP::Response;
+use Devel::Dwarn;
+use Tie::STDERR sub { push @err, @_;  map { split qr/\n/ } @_ };
+use Tie::STDOUT print => sub { print @_; push @out, map { split qr/\n/ } @_ };
 
 my $loop = IO::Async::Loop->new;
 
@@ -23,7 +28,7 @@ my $s = IO::Socket::INET->new(
 ) or die "No bind: $@\n";
 
 my $timer = IO::Async::Timer::Periodic->new(
-   interval => 60,
+   interval => 2,
 
    on_tick => \&mq,
 );
@@ -37,8 +42,16 @@ my $httpserver = Net::Async::HTTP::Server->new(
       my ( $req ) = @_;
 
       my $response = HTTP::Response->new( 200 );
-      $response->add_content( "Status info goes here\n" );
-      $response->content_type( 'text/plain' );
+      $response->add_content(
+         '<head><title>server status</title></head>
+         <body>
+         <h1>STDERR</h1>
+         <pre>' . join("\n", @err) . '</pre>
+         <h1>STDOUT</h1>
+         <pre>' . join("\n", @out) . '</pre>
+         </body>'
+      );
+      $response->content_type( 'text/html' );
       $response->content_length( length $response->content );
 
       $req->respond( $response );
@@ -59,10 +72,7 @@ my $sock = IO::Async::Socket->new(
 $loop->add($sock);
 $loop->run;
 
-my $in_mq;
 sub mq {
-   return if $in_mq;
-   $in_mq = 1;
-
-   $in_mq = 0;
+ print "running mq\n";
+ warn "scary thing happened in the mq";
 }
